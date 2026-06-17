@@ -170,7 +170,7 @@ Browser opens                   Spring Boot
 ### Fraud Detection — Redis Sliding Window
 
 ```
-Payment arrives from Barclays Bank
+Payment arrives from Vantage Bank
         │
         ▼
 INCR rapid:acc-001          ← atomic Redis increment
@@ -489,9 +489,9 @@ GET  /api/accounts/{id}     Get a single account
 ```json
 {
   "id": "acc-001",
-  "name": "Barclays Bank PLC",
-  "accountNumber": "20-32-06 10234567",
-  "bankCode": "BARCGB22",
+  "name": "Vantage Bank PLC",
+  "accountNumber": "20-32-06 60789012",
+  "bankCode": "VNTGGB22",
   "currency": "GBP",
   "balance": 4985000.00,
   "createdAt": "2026-06-17T10:00:00"
@@ -630,12 +630,12 @@ Six UK bank accounts are created on every startup:
 
 | Bank | Sort Code / Account | SWIFT/BIC | Opening Balance |
 |---|---|---|---|
-| Barclays Bank PLC | 20-32-06 10234567 | BARCGB22 | £5,000,000 |
-| HSBC UK Bank PLC | 40-47-84 20345678 | MIDLGB22 | £3,500,000 |
-| Lloyds Bank PLC | 30-91-56 30456789 | LOYDGB2L | £2,750,000 |
-| NatWest Group PLC | 60-70-80 40567890 | NWBKGB2L | £4,200,000 |
-| Santander UK PLC | 09-01-28 50678901 | ABBYGB2L | £1,800,000 |
-| Standard Chartered Bank | 15-80-00 60789012 | SCBLGB2L | £6,100,000 |
+| Albion Bank PLC | 30-91-56 10234567 | ALBNGB2L | £5,000,000 |
+| Meridian Bank PLC | 40-47-84 20345678 | MRDNGB22 | £3,500,000 |
+| Crestfield Group PLC | 60-70-80 30456789 | CRFTGB2L | £2,750,000 |
+| Harrington PLC | 11-06-09 40567890 | HRNGGB21 | £4,200,000 |
+| Caledonian Bank | 80-22-60 50678901 | CALDGB21 | £1,800,000 |
+| Vantage Bank PLC | 20-32-06 60789012 | VNTGGB22 | £6,100,000 |
 
 Balances reset to these values each time the backend restarts (due to `ddl-auto: create-drop`).
 
@@ -671,14 +671,14 @@ Point out:
 
 Click **Send Payment**.
 
-- Select **Barclays Bank PLC** as sender
-- Select **HSBC UK Bank PLC** as receiver
+- Select **Vantage Bank PLC** as sender
+- Select **Meridian Bank PLC** as receiver
 - Enter **£15,000**
 - Click **Send Payment**
 
 Immediately switch to the **Dashboard** tab.
 
-> *"Watch the recent transactions table — the payment appears instantly as PENDING, then moves to PROCESSING, then COMPLETED. The chart has just recorded its first tick. The Barclays and HSBC balances have updated."*
+> *"Watch the recent transactions table — the payment appears instantly as PENDING, then moves to PROCESSING, then COMPLETED. The chart has just recorded its first tick. The Vantage and Meridian balances have updated."*
 
 Then switch to **Live Feed**.
 
