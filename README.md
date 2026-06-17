@@ -8,7 +8,7 @@ A banking demo application simulating real-time interbank payments with live fra
 |---|---|---|
 | **payflow-demo** ← you are here | Spring Boot · Docker Compose | Local dev — PostgreSQL, RabbitMQ, Redis, Prometheus, Grafana |
 | [payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) | Spring Boot · CF managed services | Tanzu/TAS — single `cf push`, VCAP_SERVICES auto-wiring |
-| [payflow-ai](https://github.com/zahooruk2022/payflow-ai) | Spring AI · Tanzu GenAI | AI payment analyst — tool-calling chat + semantic transaction search |
+| [payflow-ai](https://github.com/zahooruk2022/payflow-ai) | Spring AI · Tanzu GenAI | AI payment analyst — tool-calling chat on `gpt-oss:20b` |
 
 > **Interactive architecture diagram:** open `architecture.html` in a browser.
 
