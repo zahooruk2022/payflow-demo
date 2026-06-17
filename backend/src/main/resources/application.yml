@@ -1,0 +1,73 @@
+spring:
+  application:
+    name: payflow
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payflow
+    username: payflow
+    password: payflow123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  sql:
+    init:
+      mode: always
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: payflow
+    password: payflow123
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+
+payflow:
+  rabbitmq:
+    exchange: payflow.exchange
+    routing-key: payment.process
+    queue: payment.queue
+    dead-letter-exchange: payflow.dlx
+    dead-letter-queue: payment.dlq
+
+  fraud:
+    high-amount-threshold: 50000
+    rapid-succession-window-seconds: 60
+    rapid-succession-count: 3
+    round-number-threshold: 5000
+    high-risk-threshold: 60
+
+  currency: GBP
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,rabbitmq
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+logging:
+  level:
+    com.demo.payflow: DEBUG

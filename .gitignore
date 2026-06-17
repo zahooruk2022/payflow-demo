@@ -1,0 +1,36 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# Spring Boot
+spring-boot-*.jar
+
+# Node / npm
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+*.env
+
+# Logs
+*.log
+logs/
+
+# Docker volumes (local data)
+postgres_data/
+grafana_data/

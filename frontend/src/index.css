@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light mode (default) */
+:root {
+  --bg-page:    #f1f5f9;
+  --bg-nav:     #ffffff;
+  --bg-card:    #ffffff;
+  --border:     rgba(0, 0, 0, 0.08);
+  --text:       #0f172a;
+  --text-muted: #64748b;
+}
+
+/* Dark mode */
+.dark {
+  --bg-page:    #0f1729;
+  --bg-nav:     #0b1220;
+  --bg-card:    #141e35;
+  --border:     rgba(255, 255, 255, 0.06);
+  --text:       #e2e8f0;
+  --text-muted: #94a3b8;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.5); }

@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PayFlow — Architecture & Component Flow</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --amber: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+    --orange: #f0883e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  /* ── Layout ──────────────────────────────── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header .logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: -0.5px;
+  }
+  header .logo span { color: var(--text); }
+  header nav {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+  header nav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  header nav a:hover,
+  header nav a.active {
+    color: var(--text);
+    background: var(--bg3);
+    border-color: var(--border);
+  }
+  main { max-width: 1300px; margin: 0 auto; padding: 40px 32px 80px; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+  .subtitle { color: var(--muted); margin-bottom: 40px; font-size: 15px; }
+  section { margin-bottom: 56px; }
+  section > h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Detail panel ──────────────────────── */
+  #detail-panel {
+    display: none;
+    position: fixed;
+    right: 0; top: 0; bottom: 0;
+    width: 360px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  }
+  #detail-panel.open { display: block; }
+  #detail-panel .close-btn {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  #detail-panel .close-btn:hover { color: var(--text); border-color: var(--muted); }
+  #detail-panel h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; margin-top: 4px; }
+  #detail-panel .dp-tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+  #detail-panel .dp-desc { color: var(--muted); font-size: 13px; line-height: 1.7; margin-bottom: 20px; }
+  #detail-panel .dp-props { list-style: none; }
+  #detail-panel .dp-props li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  #detail-panel .dp-props li:last-child { border-bottom: none; }
+  #detail-panel .dp-props .pk { color: var(--muted); min-width: 80px; flex-shrink: 0; }
+  #detail-panel .dp-props .pv { color: var(--text); font-family: ui-monospace, monospace; font-size: 12px; }
+
+  /* ── Architecture diagram ────────────────── */
+  .arch-diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    overflow-x: auto;
+  }
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    grid-template-rows: auto auto auto auto;
+    gap: 24px 32px;
+    min-width: 800px;
+    align-items: center;
+  }
+
+  /* Nodes */
+  .node {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    text-align: center;
+  }
+  .node:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+  .node.active { box-shadow: 0 0 0 2px currentColor; }
+  .node .n-icon { font-size: 22px; margin-bottom: 6px; }
+  .node .n-title { font-size: 13px; font-weight: 600; }
+  .node .n-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .node .n-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 10px;
+    padding: 1px 6px;
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+  }
+
+  /* Node colours */
+  .node.browser  { border-color: #58a6ff40; color: var(--blue); }
+  .node.spring   { border-color: #3fb95040; color: var(--green); }
+  .node.rabbit   { border-color: #f0883e40; color: var(--orange); }
+  .node.redis    { border-color: #f8514940; color: var(--red); }
+  .node.postgres { border-color: #bc8cff40; color: var(--purple); }
+  .node.prometheus { border-color: #f8514940; color: #e05252; }
+  .node.grafana  { border-color: #f0883e40; color: var(--orange); }
+
+  /* Arrows */
+  .arrows-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .arrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .arrow .line {
+    flex: 1;
+    min-width: 40px;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+  }
+  .arrow .line::after {
+    content: '';
+    position: absolute;
+    right: -1px; top: -3px;
+    border: 4px solid transparent;
+    border-left-color: var(--border);
+  }
+  .arrow .line.reverse::after { display: none; }
+  .arrow .line.reverse::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: -3px;
+    border: 4px solid transparent;
+    border-right-color: var(--border);
+  }
+  .arrow.blue .line  { background: #58a6ff60; }
+  .arrow.blue .line::after { border-left-color: #58a6ff60; }
+  .arrow.green .line { background: #3fb95060; }
+  .arrow.green .line::after { border-left-color: #3fb95060; }
+  .arrow.orange .line { background: #f0883e60; }
+  .arrow.orange .line::after { border-left-color: #f0883e60; }
+  .arrow.red .line { background: #f8514960; }
+  .arrow.red .line::after { border-left-color: #f8514960; }
+  .arrow.purple .line { background: #bc8cff60; }
+  .arrow.purple .line::after { border-left-color: #bc8cff60; }
+  .arrow.blue .line.reverse { background: #58a6ff60; }
+  .arrow.blue .line.reverse::before { border-right-color: #58a6ff60; }
+
+  /* ── Flow diagram ──────────────────────── */
+  .flow-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    cursor: pointer;
+    padding: 16px;
+    border-radius: 10px;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .flow-step:hover { background: var(--bg3); }
+  .flow-step .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .flow-step .step-body { flex: 1; }
+  .flow-step .step-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .flow-step .step-desc { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .flow-step .step-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .flow-step .step-tags .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .flow-connector {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 29px;
+  }
+  .flow-connector.split {
+    background: none;
+    width: 100%;
+    display: flex;
+    gap: 0;
+    margin-left: 0;
+    padding-left: 14px;
+  }
+
+  /* ── Component grid ────────────────────── */
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .comp-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .comp-card:hover { border-color: var(--muted); transform: translateY(-1px); }
+  .comp-card .cc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .comp-card .cc-icon { font-size: 20px; }
+  .comp-card .cc-name { font-weight: 600; font-size: 14px; }
+  .comp-card .cc-file { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .comp-card .cc-desc { color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .comp-card .cc-layer {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+
+  /* ── Monitoring section ────────────────── */
+  .monitoring-grid {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr 80px 1fr;
+    gap: 0;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    overflow-x: auto;
+  }
+  .m-node {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .m-node:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  .m-node .mn-icon { font-size: 28px; margin-bottom: 8px; }
+  .m-node .mn-title { font-weight: 600; font-size: 14px; }
+  .m-node .mn-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .m-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 20px;
+  }
+
+  /* ── Metrics grid ──────────────────────── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-card .mc-name {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--blue);
+    margin-bottom: 4px;
+  }
+  .metric-card .mc-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .metric-card .mc-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── WebSocket topics ──────────────────── */
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .topic-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .topic-card .tc-topic {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .topic-card .tc-desc { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .topic-card .tc-payload { background: var(--bg3); border-radius: 6px; padding: 10px 12px; font-size: 11px; font-family: ui-monospace, monospace; color: var(--muted); white-space: pre; overflow-x: auto; }
+  .tc-payload .k { color: var(--blue); }
+  .tc-payload .s { color: var(--green); }
+  .tc-payload .n { color: var(--purple); }
+
+  /* ── Utility classes ───────────────────── */
+  .tag-blue   { background: #58a6ff18; border-color: #58a6ff40; color: var(--blue); }
+  .tag-green  { background: #3fb95018; border-color: #3fb95040; color: var(--green); }
+  .tag-orange { background: #f0883e18; border-color: #f0883e40; color: var(--orange); }
+  .tag-red    { background: #f8514918; border-color: #f8514940; color: var(--red); }
+  .tag-purple { background: #bc8cff18; border-color: #bc8cff40; color: var(--purple); }
+  .tag-amber  { background: #d2992218; border-color: #d2992240; color: var(--amber); }
+  .text-blue   { color: var(--blue); }
+  .text-green  { color: var(--green); }
+  .text-orange { color: var(--orange); }
+  .text-red    { color: var(--red); }
+  .text-purple { color: var(--purple); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Pay<span>Flow</span></div>
+  <div style="color:var(--muted);font-size:13px;">Architecture &amp; Component Reference</div>
+  <nav>
+    <a href="#architecture" class="active" onclick="setActive(this)">Architecture</a>
+    <a href="#flow" onclick="setActive(this)">Payment Flow</a>
+    <a href="#components" onclick="setActive(this)">Components</a>
+    <a href="#monitoring" onclick="setActive(this)">Monitoring</a>
+    <a href="#websocket" onclick="setActive(this)">WebSocket</a>
+  </nav>
+</header>
+
+<!-- ─── Detail panel ───────────────────────────────────────────── -->
+<div id="detail-panel">
+  <button class="close-btn" onclick="closePanel()">✕ Close</button>
+  <div id="dp-content"></div>
+</div>
+
+<main>
+
+  <h1>PayFlow — System Architecture</h1>
+  <p class="subtitle">Real-time interbank payment processing with live fraud detection. Click any component for details.</p>
+
+  <!-- ─── Architecture diagram ───────────────────────────────── -->
+  <section id="architecture">
+    <h2>System Architecture</h2>
+    <div class="arch-diagram">
+      <div class="arch-grid">
+
+        <!-- Row 1: Browser -->
+        <div></div>
+        <div class="node browser" onclick="showDetail('browser')" style="grid-column:2">
+          <div class="n-icon">🌐</div>
+          <div class="n-title">React Frontend</div>
+          <div class="n-sub">localhost:5173 · Vite + Tailwind</div>
+          <div class="n-badge">:5173</div>
+        </div>
+        <div></div>
+
+        <!-- Row 2: Arrows down to Spring Boot -->
+        <div></div>
+        <div class="arrows-col" style="grid-column:2">
+          <div class="arrow blue">
+            <div class="line"></div>
+            <span>POST /api/payments</span>
+            <div class="line" style="min-width:40px"></div>
+          </div>
+          <div class="arrow blue">
+            <div class="line reverse"></div>
+            <span>WebSocket /topic/*</span>
+            <div class="line reverse" style="min-width:40px"></div>
+          </div>
+        </div>
+        <div></div>
+
+        <!-- Row 3: Spring Boot centre, Redis right, Prometheus right -->
+        <div class="node prometheus" onclick="showDetail('prometheus')" style="grid-column:1;grid-row:3">
+          <div class="n-icon">📊</div>
+          <div class="n-title">Prometheus</div>
+          <div class="n-sub">localhost:9090</div>
+          <div class="n-badge">:9090</div>
+        </div>
+
+        <div class="node spring" onclick="showDetail('spring')" style="grid-column:2;grid-row:3">
+          <div class="n-icon">🍃</div>
+          <div class="n-title">Spring Boot 3.5</div>
+          <div class="n-sub">Java 21 · REST + WS + Consumer</div>
+          <div class="n-badge">:8080</div>
+        </div>
+
+        <div class="node redis" onclick="showDetail('redis')" style="grid-column:3;grid-row:3">
+          <div class="n-icon">🔴</div>
+          <div class="n-title">Redis 7.2</div>
+          <div class="n-sub">Fraud counters · Sliding window</div>
+          <div class="n-badge">:6379</div>
+        </div>
+
+        <!-- Prometheus arrows -->
+        <!-- Row 4: three nodes below Spring -->
+        <div class="node grafana" onclick="showDetail('grafana')" style="grid-column:1;grid-row:4">
+          <div class="n-icon">📈</div>
+          <div class="n-title">Grafana</div>
+          <div class="n-sub">localhost:3000</div>
+          <div class="n-badge">:3000</div>
+        </div>
+
+        <div style="grid-column:2;grid-row:4;display:flex;gap:16px;justify-content:center">
+          <div class="node rabbit" onclick="showDetail('rabbit')" style="flex:1">
+            <div class="n-icon">🐇</div>
+            <div class="n-title">RabbitMQ</div>
+            <div class="n-sub">payment.queue · DLQ</div>
+            <div class="n-badge">:5672</div>
+          </div>
+          <div class="node postgres" onclick="showDetail('postgres')" style="flex:1">
+            <div class="n-icon">🐘</div>
+            <div class="n-title">PostgreSQL 16</div>
+            <div class="n-sub">accounts · transactions · alerts</div>
+            <div class="n-badge">:5432</div>
+          </div>
+        </div>
+
+        <div style="grid-column:3;grid-row:4;display:flex;align-items:center;justify-content:center">
+          <div style="text-align:center;color:var(--muted);font-size:12px;line-height:1.6">
+            <div style="font-size:20px;margin-bottom:4px">↑</div>
+            INCR rapid:&lt;id&gt;<br/>
+            EXPIRE 60s
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Legend below diagram -->
+      <div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--muted)">Click any component for details →</div>
+        <div class="arrow blue" style="font-size:12px"><div class="line" style="min-width:30px"></div><span>HTTP / REST</span></div>
+        <div class="arrow blue" style="font-size:12px"><div class="line reverse" style="min-width:30px"></div><span>WebSocket push</span></div>
+        <div class="arrow orange" style="font-size:12px"><div class="line" style="min-width:30px"></div><span>AMQP message</span></div>
+        <div class="arrow purple" style="font-size:12px"><div class="line" style="min-width:30px"></div><span>JPA / SQL</span></div>
+        <div class="arrow red" style="font-size:12px"><div class="line" style="min-width:30px"></div><span>Redis command</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Payment flow ────────────────────────────────────────── -->
+  <section id="flow">
+    <h2>Payment Lifecycle — Step by Step</h2>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px 32px">
+
+      <div class="flow-step" onclick="showDetail('step-submit')">
+        <div class="step-num tag-blue">1</div>
+        <div class="step-body">
+          <div class="step-title">User submits payment</div>
+          <div class="step-desc">React PaymentForm calls <code style="font-family:monospace;color:var(--blue)">POST /api/payments</code> with sender/receiver accounts, amount (GBP), and description. Vite proxy forwards to Spring Boot on :8080.</div>
+          <div class="step-tags">
+            <span class="tag tag-blue">React</span>
+            <span class="tag tag-blue">Vite proxy</span>
+            <span class="tag tag-green">REST</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <div class="flow-step" onclick="showDetail('step-persist')">
+        <div class="step-num tag-green">2</div>
+        <div class="step-body">
+          <div class="step-title">Transaction saved — status: PENDING</div>
+          <div class="step-desc">PaymentController delegates to PaymentService. A Transaction entity is persisted to PostgreSQL with status PENDING. A TransactionEvent DTO is broadcast to <code style="font-family:monospace;color:var(--green)">/topic/transactions</code> — the UI updates immediately with no polling.</div>
+          <div class="step-tags">
+            <span class="tag tag-green">Spring MVC</span>
+            <span class="tag tag-purple">JPA</span>
+            <span class="tag tag-blue">WebSocket</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <div class="flow-step" onclick="showDetail('step-queue')">
+        <div class="step-num tag-orange">3</div>
+        <div class="step-body">
+          <div class="step-title">Published to RabbitMQ</div>
+          <div class="step-desc">PaymentProducer publishes the transaction ID to <code style="font-family:monospace;color:var(--orange)">payflow.exchange</code>. RabbitMQ routes it to <code style="font-family:monospace;color:var(--orange)">payment.queue</code>. A dead-letter queue (<code style="font-family:monospace;color:var(--orange)">payment.dlq</code>) captures any processing failures — nothing is silently lost.</div>
+          <div class="step-tags">
+            <span class="tag tag-orange">RabbitMQ</span>
+            <span class="tag tag-orange">AMQP</span>
+            <span class="tag tag-orange">DLQ</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <div class="flow-step" onclick="showDetail('step-consumer')">
+        <div class="step-num tag-orange">4</div>
+        <div class="step-body">
+          <div class="step-title">Consumer picks up — status: PROCESSING</div>
+          <div class="step-desc">PaymentConsumer (<code style="font-family:monospace;color:var(--green)">@RabbitListener</code>) receives the message, loads the full transaction from PostgreSQL, and updates the status to PROCESSING. Another WebSocket broadcast is sent so the UI shows the in-progress state.</div>
+          <div class="step-tags">
+            <span class="tag tag-orange">@RabbitListener</span>
+            <span class="tag tag-purple">JPA load</span>
+            <span class="tag tag-blue">WS broadcast</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <div class="flow-step" onclick="showDetail('step-fraud')">
+        <div class="step-num tag-red">5</div>
+        <div class="step-body">
+          <div class="step-title">Fraud detection runs</div>
+          <div class="step-desc">FraudDetectionService evaluates three rules additively:<br/>
+            • <strong>High Amount</strong> — amount &gt; £50,000 → +60 risk<br/>
+            • <strong>Rapid Succession</strong> — 3+ payments in 60s from same account → +70 risk (Redis INCR + EXPIRE)<br/>
+            • <strong>Round Number</strong> — exact whole-pound amount &gt; £5,000 → +20 risk
+          </div>
+          <div class="step-tags">
+            <span class="tag tag-red">Fraud rules</span>
+            <span class="tag tag-red">Redis INCR</span>
+            <span class="tag tag-amber">Score ≥ 60 → FLAGGED</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <!-- Split -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 16px">
+        <div class="flow-step" onclick="showDetail('step-flagged')" style="border:1px dashed #f8514940;border-radius:10px;background:#f8514908">
+          <div class="step-num" style="background:#f8514918;color:var(--red);border:1px solid #f8514940">✗</div>
+          <div class="step-body">
+            <div class="step-title text-red">Score ≥ 60 — FLAGGED</div>
+            <div class="step-desc">Transaction quarantined. FraudAlert saved to PostgreSQL. Broadcast to <code style="font-family:monospace;color:var(--red)">/topic/fraud-alerts</code> and <code style="font-family:monospace;color:var(--red)">/topic/transactions</code>. Fraud Alerts tab badge increments.</div>
+            <div class="step-tags">
+              <span class="tag tag-red">FraudAlert persisted</span>
+              <span class="tag tag-red">UI badge++</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-step" onclick="showDetail('step-completed')" style="border:1px dashed #3fb95040;border-radius:10px;background:#3fb95008">
+          <div class="step-num" style="background:#3fb95018;color:var(--green);border:1px solid #3fb95040">✓</div>
+          <div class="step-body">
+            <div class="step-title text-green">Score &lt; 60 — COMPLETED</div>
+            <div class="step-desc">Account balances updated atomically. Transaction marked COMPLETED. Broadcast to <code style="font-family:monospace;color:var(--green)">/topic/transactions</code>. KPI cards, chart, and balances panel all update live.</div>
+            <div class="step-tags">
+              <span class="tag tag-green">Balances updated</span>
+              <span class="tag tag-green">Chart tick</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-connector"></div>
+
+      <div class="flow-step" onclick="showDetail('step-stats')">
+        <div class="step-num tag-purple">6</div>
+        <div class="step-body">
+          <div class="step-title">Stats broadcast — KPIs refresh everywhere</div>
+          <div class="step-desc">After every completed or flagged payment, PaymentService computes a fresh DashboardStats snapshot (total, completed, flagged, volume, rates) and broadcasts it to <code style="font-family:monospace;color:var(--purple)">/topic/stats</code>. Every connected browser receives the update simultaneously.</div>
+          <div class="step-tags">
+            <span class="tag tag-purple">DashboardStats</span>
+            <span class="tag tag-blue">All browsers sync</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Components ──────────────────────────────────────────── -->
+  <section id="components">
+    <h2>Frontend Components</h2>
+
+    <div style="margin-bottom:16px;font-size:12px;color:var(--muted)">React 18 · Tailwind CSS · Recharts · STOMP/SockJS — Click a card for details</div>
+    <div class="component-grid">
+
+      <div class="comp-card" onclick="showDetail('comp-app')">
+        <div class="cc-header">
+          <div class="cc-icon">🏠</div>
+          <div><div class="cc-name">App</div><div class="cc-file">App.jsx</div></div>
+        </div>
+        <div class="cc-desc">Root component. Manages theme state (dark/light), tab routing (Dashboard / Send Payment / Live Feed / Fraud Alerts), WebSocket connection, and alert badge counter.</div>
+        <span class="cc-layer tag-blue">Entry point</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-dashboard')">
+        <div class="cc-header">
+          <div class="cc-icon">📊</div>
+          <div><div class="cc-name">Dashboard</div><div class="cc-file">Dashboard.jsx</div></div>
+        </div>
+        <div class="cc-desc">Main overview page. Renders LiveTicker, 6 StatCards, LiveChart, FraudBreakdown donut, SystemStatus, TopBanksTable, RiskScoreChart, AccountBalances, and recent transactions table.</div>
+        <span class="cc-layer tag-blue">Page</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-liveticker')">
+        <div class="cc-header">
+          <div class="cc-icon">📡</div>
+          <div><div class="cc-name">LiveTicker</div><div class="cc-file">LiveTicker.jsx</div></div>
+        </div>
+        <div class="cc-desc">Horizontally scrolling banner showing the last 20 transactions — sender → receiver, GBP amount, status. CSS @keyframes animation, no JavaScript timer needed.</div>
+        <span class="cc-layer tag-green">Real-time</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-livechart')">
+        <div class="cc-header">
+          <div class="cc-icon">📈</div>
+          <div><div class="cc-name">LiveChart</div><div class="cc-file">LiveChart.jsx</div></div>
+        </div>
+        <div class="cc-desc">Recharts AreaChart showing transaction completions and fraud flags bucketed into 1-minute intervals over a rolling 15-minute window. Updates on every WebSocket event.</div>
+        <span class="cc-layer tag-green">Recharts</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-fraudbreakdown')">
+        <div class="cc-header">
+          <div class="cc-icon">🍩</div>
+          <div><div class="cc-name">FraudBreakdown</div><div class="cc-file">FraudBreakdown.jsx</div></div>
+        </div>
+        <div class="cc-desc">Recharts PieChart (donut) showing transaction status distribution: COMPLETED / FLAGGED / PROCESSING / PENDING / FAILED. Legend with progress bars per status.</div>
+        <span class="cc-layer tag-green">Recharts</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-topbanks')">
+        <div class="cc-header">
+          <div class="cc-icon">🏦</div>
+          <div><div class="cc-name">TopBanksTable</div><div class="cc-file">TopBanksTable.jsx</div></div>
+        </div>
+        <div class="cc-desc">Top 6 banks ranked by sent volume. Shows sent/received counts, fraud flag badges, GBP amount, and a proportional bar indicator. Computed from transaction props.</div>
+        <span class="cc-layer tag-blue">Analytics</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-riskchart')">
+        <div class="cc-header">
+          <div class="cc-icon">🎯</div>
+          <div><div class="cc-name">RiskScoreChart</div><div class="cc-file">RiskScoreChart.jsx</div></div>
+        </div>
+        <div class="cc-desc">Recharts BarChart bucketing transactions into 5 risk bands: Clean (0–19), Low (20–39), Medium (40–59), High (60–79), Critical (80–100). Colour-coded by severity.</div>
+        <span class="cc-layer tag-green">Recharts</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-systemstatus')">
+        <div class="cc-header">
+          <div class="cc-icon">💚</div>
+          <div><div class="cc-name">SystemStatus</div><div class="cc-file">SystemStatus.jsx</div></div>
+        </div>
+        <div class="cc-desc">Polls /actuator/health every 15s. Shows UP/DOWN/UNKNOWN status for PostgreSQL, RabbitMQ, Redis, and the API itself. Direct links to RabbitMQ console and Grafana.</div>
+        <span class="cc-layer tag-amber">Health</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-paymentform')">
+        <div class="cc-header">
+          <div class="cc-icon">💳</div>
+          <div><div class="cc-name">PaymentForm</div><div class="cc-file">PaymentForm.jsx</div></div>
+        </div>
+        <div class="cc-desc">Interbank transfer form. Bank dropdowns with live balances, GBP quick amounts (£10K/£25K/£50K/£75K), fraud test button (£60K), and inline submission feedback.</div>
+        <span class="cc-layer tag-blue">Page</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-feed')">
+        <div class="cc-header">
+          <div class="cc-icon">📋</div>
+          <div><div class="cc-name">TransactionFeed</div><div class="cc-file">TransactionFeed.jsx</div></div>
+        </div>
+        <div class="cc-desc">Full transaction history with real-time WebSocket updates. Filter pills (ALL/PENDING/PROCESSING/COMPLETED/FLAGGED), risk bars, animated pulse on PROCESSING rows.</div>
+        <span class="cc-layer tag-green">Real-time</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-fraud-alerts')">
+        <div class="cc-header">
+          <div class="cc-icon">🚨</div>
+          <div><div class="cc-name">FraudAlerts</div><div class="cc-file">FraudAlerts.jsx</div></div>
+        </div>
+        <div class="cc-desc">Dedicated alert view. Cards per fraud event showing rule type, risk score meter, banks involved, GBP amount. Badge counter on the nav tab resets when opened.</div>
+        <span class="cc-layer tag-red">Fraud</span>
+      </div>
+
+      <div class="comp-card" onclick="showDetail('comp-balances')">
+        <div class="cc-header">
+          <div class="cc-icon">⚖️</div>
+          <div><div class="cc-name">AccountBalances</div><div class="cc-file">AccountBalances.jsx</div></div>
+        </div>
+        <div class="cc-desc">Live balance display for all 6 UK banks. Proportional progress bars (relative to highest balance), GBP formatting, manual refresh button via REST.</div>
+        <span class="cc-layer tag-blue">Dashboard</span>
+      </div>
+
+    </div>
+
+    <div style="margin-top:28px">
+      <h2 style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:20px">Backend Services</h2>
+      <div class="component-grid">
+        <div class="comp-card" onclick="showDetail('svc-payment')">
+          <div class="cc-header">
+            <div class="cc-icon">⚙️</div>
+            <div><div class="cc-name">PaymentService</div><div class="cc-file">service/PaymentService.java</div></div>
+          </div>
+          <div class="cc-desc">Orchestrates the full payment lifecycle: persist PENDING → publish to RabbitMQ → WebSocket broadcast. Also triggered post-processing to broadcast stats.</div>
+          <span class="cc-layer tag-green">Core service</span>
+        </div>
+        <div class="comp-card" onclick="showDetail('svc-fraud')">
+          <div class="cc-header">
+            <div class="cc-icon">🛡️</div>
+            <div><div class="cc-name">FraudDetectionService</div><div class="cc-file">service/FraudDetectionService.java</div></div>
+          </div>
+          <div class="cc-desc">Rule engine: High Amount (+60), Rapid Succession (+70 via Redis), Round Number (+20). Returns a FraudResult with score and alert type. Score ≥ 60 = FLAGGED.</div>
+          <span class="cc-layer tag-red">Fraud</span>
+        </div>
+        <div class="comp-card" onclick="showDetail('svc-metrics')">
+          <div class="cc-header">
+            <div class="cc-icon">📏</div>
+            <div><div class="cc-name">PaymentMetricsService</div><div class="cc-file">service/PaymentMetricsService.java</div></div>
+          </div>
+          <div class="cc-desc">Micrometer instrumentation: counters for submitted/completed/flagged/failed payments, volume (GBP), and a Timer with p50/p95/p99 percentiles for processing latency.</div>
+          <span class="cc-layer tag-amber">Metrics</span>
+        </div>
+        <div class="comp-card" onclick="showDetail('svc-consumer')">
+          <div class="cc-header">
+            <div class="cc-icon">📥</div>
+            <div><div class="cc-name">PaymentConsumer</div><div class="cc-file">messaging/PaymentConsumer.java</div></div>
+          </div>
+          <div class="cc-desc">@RabbitListener on payment.queue. Loads transaction, updates to PROCESSING, invokes FraudDetectionService, saves result (COMPLETED or FLAGGED), broadcasts updates.</div>
+          <span class="cc-layer tag-orange">RabbitMQ</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Monitoring ──────────────────────────────────────────── -->
+  <section id="monitoring">
+    <h2>Monitoring Stack</h2>
+
+    <div class="monitoring-grid" style="margin-bottom:24px">
+      <div class="m-node" onclick="showDetail('spring-metrics')">
+        <div class="mn-icon">🍃</div>
+        <div class="mn-title">Spring Boot Actuator</div>
+        <div class="mn-sub">/actuator/prometheus<br/>Micrometer registry</div>
+      </div>
+      <div class="m-arrow">→</div>
+      <div class="m-node" onclick="showDetail('prometheus')">
+        <div class="mn-icon">📊</div>
+        <div class="mn-title">Prometheus</div>
+        <div class="mn-sub">Scrapes every 5s<br/>localhost:9090</div>
+      </div>
+      <div class="m-arrow">→</div>
+      <div class="m-node" onclick="showDetail('grafana')">
+        <div class="mn-icon">📈</div>
+        <div class="mn-title">Grafana</div>
+        <div class="mn-sub">Auto-provisioned dashboard<br/>localhost:3000</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;font-size:12px;color:var(--muted)">Custom Micrometer metrics exposed at /actuator/prometheus:</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="mc-name">payflow_payments_submitted_total</div>
+        <div class="mc-type">Counter</div>
+        <div class="mc-desc">Total payments submitted via POST /api/payments</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">payflow_payments_completed_total</div>
+        <div class="mc-type">Counter</div>
+        <div class="mc-desc">Payments that passed fraud rules and settled</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">payflow_payments_flagged_total</div>
+        <div class="mc-type">Counter</div>
+        <div class="mc-desc">Payments quarantined by fraud detection</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">payflow_payments_failed_total</div>
+        <div class="mc-type">Counter</div>
+        <div class="mc-desc">Payments that errored during processing</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">payflow_payment_volume_gbp_total</div>
+        <div class="mc-type">Counter</div>
+        <div class="mc-desc">Cumulative GBP value of completed payments</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-name">payflow_payment_processing_seconds</div>
+        <div class="mc-type">Timer (p50 / p95 / p99)</div>
+        <div class="mc-desc">End-to-end processing time from queue pickup to final status</div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding:16px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--muted)">
+      <strong style="color:var(--text)">Grafana credentials:</strong> admin / payflow123 &nbsp;·&nbsp;
+      <strong style="color:var(--text)">Dashboard:</strong> auto-provisioned on startup &nbsp;·&nbsp;
+      <strong style="color:var(--text)">Datasource UID:</strong> prometheus
+    </div>
+  </section>
+
+  <!-- ─── WebSocket ───────────────────────────────────────────── -->
+  <section id="websocket">
+    <h2>WebSocket Topics</h2>
+    <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">STOMP over SockJS · connect to <code style="font-family:monospace;color:var(--blue)">http://localhost:8080/ws</code></div>
+    <div class="topics-grid">
+      <div class="topic-card">
+        <div class="tc-topic">/topic/transactions</div>
+        <div class="tc-desc">Fired on every transaction state change: PENDING → PROCESSING → COMPLETED/FLAGGED. Every connected browser receives each event.</div>
+        <div class="tc-payload"><span class="k">"id"</span>: <span class="s">"txn-uuid"</span>,
+<span class="k">"reference"</span>: <span class="s">"PF-20260617-..."</span>,
+<span class="k">"senderName"</span>: <span class="s">"Barclays Bank PLC"</span>,
+<span class="k">"receiverName"</span>: <span class="s">"HSBC UK Bank PLC"</span>,
+<span class="k">"amount"</span>: <span class="n">60000.00</span>,
+<span class="k">"currency"</span>: <span class="s">"GBP"</span>,
+<span class="k">"status"</span>: <span class="s">"FLAGGED"</span>,
+<span class="k">"riskScore"</span>: <span class="n">60</span>,
+<span class="k">"timestamp"</span>: <span class="s">"2026-06-17T14:32:01"</span></div>
+      </div>
+      <div class="topic-card">
+        <div class="tc-topic">/topic/fraud-alerts</div>
+        <div class="tc-desc">Fired when a transaction is FLAGGED. Same TransactionEvent shape — the alert tab badge counter increments and a new card appears in the Fraud Alerts tab.</div>
+        <div class="tc-payload"><span class="k">"id"</span>: <span class="s">"txn-uuid"</span>,
+<span class="k">"status"</span>: <span class="s">"FLAGGED"</span>,
+<span class="k">"riskScore"</span>: <span class="n">60</span>,
+<span class="k">"alertType"</span>: <span class="s">"HIGH_AMOUNT"</span>,
+<span class="k">"amount"</span>: <span class="n">60000.00</span>,
+<span class="k">"senderName"</span>: <span class="s">"Barclays Bank PLC"</span></div>
+      </div>
+      <div class="topic-card">
+        <div class="tc-topic">/topic/stats</div>
+        <div class="tc-desc">Broadcast after every completed or flagged payment. All KPI stat cards on every connected browser refresh simultaneously — no page reload required.</div>
+        <div class="tc-payload"><span class="k">"totalTransactions"</span>: <span class="n">42</span>,
+<span class="k">"completedTransactions"</span>: <span class="n">35</span>,
+<span class="k">"pendingTransactions"</span>: <span class="n">2</span>,
+<span class="k">"flaggedTransactions"</span>: <span class="n">5</span>,
+<span class="k">"totalVolume"</span>: <span class="n">1250000.00</span>,
+<span class="k">"fraudRate"</span>: <span class="n">11.9</span>,
+<span class="k">"successRate"</span>: <span class="n">83.33</span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── Detail panel data ──────────────────────────────────────── -->
+<script>
+const DETAILS = {
+  browser: {
+    title: 'React Frontend',
+    tag: 'UI Layer', tagClass: 'tag-blue',
+    desc: 'Single-page application built with React 18, Tailwind CSS, and Recharts. Communicates with the backend over REST and WebSocket (STOMP over SockJS). Dark/light mode toggled via a class on the <html> element, persisted to localStorage.',
+    props: [
+      ['Port', ':5173'],
+      ['Framework', 'React 18 + Vite 5'],
+      ['Styling', 'Tailwind CSS (darkMode: class)'],
+      ['Charts', 'Recharts 2'],
+      ['WebSocket', '@stomp/stompjs + sockjs-client'],
+      ['Proxy', 'Vite → :8080 for /api and /ws'],
+    ],
+  },
+  spring: {
+    title: 'Spring Boot 3.5 / Java 21',
+    tag: 'Backend', tagClass: 'tag-green',
+    desc: 'REST API, WebSocket message broker, and RabbitMQ consumer all in one process. Handles payment submission, orchestrates the fraud pipeline, and pushes live events to all connected browsers.',
+    props: [
+      ['Port', ':8080'],
+      ['Runtime', 'Java 21 (LTS)'],
+      ['REST', 'Spring MVC — /api/payments, /api/accounts, /api/dashboard'],
+      ['WebSocket', 'STOMP broker at /ws, topics /topic/*'],
+      ['Persistence', 'Spring Data JPA + Hibernate (DDL: create-drop)'],
+      ['Metrics', 'Spring Actuator + Micrometer → Prometheus'],
+    ],
+  },
+  rabbit: {
+    title: 'RabbitMQ 3.13',
+    tag: 'Message Broker', tagClass: 'tag-orange',
+    desc: 'Decouples payment submission from processing. The REST handler returns immediately after saving PENDING — RabbitMQ delivers the work to the consumer asynchronously. A dead-letter queue captures any processing failures.',
+    props: [
+      ['AMQP port', ':5672'],
+      ['Management UI', ':15672 (payflow / payflow123)'],
+      ['Exchange', 'payflow.exchange (direct)'],
+      ['Queue', 'payment.queue'],
+      ['Dead-letter', 'payment.dlq'],
+      ['Image', 'rabbitmq:3.13-management-alpine'],
+    ],
+  },
+  redis: {
+    title: 'Redis 7.2',
+    tag: 'Cache / Counters', tagClass: 'tag-red',
+    desc: 'Used exclusively for the rapid-succession fraud rule. An atomic INCR on key rapid:<accountId> increments a counter; the first INCR also sets EXPIRE 60s. If the counter hits 3, the rule fires. The key self-destructs — no cleanup job needed.',
+    props: [
+      ['Port', ':6379'],
+      ['Key pattern', 'rapid:<accountId>'],
+      ['TTL', '60 seconds'],
+      ['Operation', 'INCR (atomic) + EXPIRE'],
+      ['Image', 'redis:7.2-alpine'],
+    ],
+  },
+  postgres: {
+    title: 'PostgreSQL 16',
+    tag: 'Database', tagClass: 'tag-purple',
+    desc: 'Primary durable store. Hibernate creates the schema on startup and drops it on shutdown (create-drop). data.sql seeds 6 UK bank accounts with GBP balances.',
+    props: [
+      ['Port', ':5432'],
+      ['Database', 'payflow'],
+      ['Tables', 'account, transaction, fraud_alert'],
+      ['DDL', 'create-drop (resets on restart)'],
+      ['Seed', '6 UK banks via data.sql'],
+      ['Image', 'postgres:16-alpine'],
+    ],
+  },
+  prometheus: {
+    title: 'Prometheus v2.51',
+    tag: 'Metrics Scraper', tagClass: 'tag-red',
+    desc: 'Scrapes the Spring Boot /actuator/prometheus endpoint every 5 seconds. Uses host.docker.internal to reach the backend running on the host machine from inside the container.',
+    props: [
+      ['Port', ':9090'],
+      ['Scrape target', 'host.docker.internal:8080/actuator/prometheus'],
+      ['Scrape interval', '5s'],
+      ['Image', 'prom/prometheus:v2.51.0'],
+    ],
+  },
+  grafana: {
+    title: 'Grafana 10.4',
+    tag: 'Dashboards', tagClass: 'tag-orange',
+    desc: 'Auto-provisions the PayFlow dashboard from a JSON file on startup — no manual setup required. The Prometheus datasource is also auto-provisioned. Open http://localhost:3000 (admin / payflow123).',
+    props: [
+      ['Port', ':3000'],
+      ['Credentials', 'admin / payflow123'],
+      ['Datasource', 'Prometheus (auto-provisioned, uid: prometheus)'],
+      ['Dashboard', 'payflow.json — 12 panels'],
+      ['Panels', 'Stats, payment rate, fraud rate, JVM memory, HTTP rate, p50/p95/p99'],
+      ['Image', 'grafana/grafana:10.4.0'],
+    ],
+  },
+  'spring-metrics': {
+    title: 'Spring Boot Actuator + Micrometer',
+    tag: 'Instrumentation', tagClass: 'tag-amber',
+    desc: 'PaymentMetricsService registers Micrometer counters and a Timer with the MeterRegistry. Spring Boot Actuator exposes them at /actuator/prometheus in the OpenMetrics text format that Prometheus understands.',
+    props: [
+      ['Endpoint', '/actuator/prometheus'],
+      ['Format', 'OpenMetrics text (Prometheus scrape format)'],
+      ['Counters', 'submitted, completed, flagged, failed, volume_gbp'],
+      ['Timer', 'processing_seconds (p50, p95, p99 percentiles)'],
+    ],
+  },
+  'step-submit': {
+    title: 'Step 1 — Submit Payment',
+    tag: 'REST', tagClass: 'tag-blue',
+    desc: 'The React PaymentForm calls POST /api/payments. Vite\'s dev proxy strips /api and forwards to http://localhost:8080/api/payments. Bean Validation runs on the request body before any service code executes.',
+    props: [
+      ['Method', 'POST /api/payments'],
+      ['Validation', 'Bean Validation (@NotNull, @Positive, @NotBlank)'],
+      ['Proxy', 'Vite /api → :8080'],
+    ],
+  },
+  'step-persist': {
+    title: 'Step 2 — Save as PENDING',
+    tag: 'JPA + WebSocket', tagClass: 'tag-green',
+    desc: 'PaymentController → PaymentService.submitPayment(). Creates a Transaction entity, saves to PostgreSQL, maps to a flat TransactionEvent DTO, and sends it to all /topic/transactions subscribers via SimpMessagingTemplate.',
+    props: [
+      ['Entity', 'Transaction (status = PENDING)'],
+      ['DB', 'PostgreSQL via Spring Data JPA'],
+      ['Broadcast', '/topic/transactions (PENDING)'],
+      ['DTO', 'TransactionEvent (flat — no nested JPA objects)'],
+    ],
+  },
+  'step-queue': {
+    title: 'Step 3 — Publish to RabbitMQ',
+    tag: 'AMQP', tagClass: 'tag-orange',
+    desc: 'PaymentProducer.publish(transactionId) sends just the UUID string to payflow.exchange with routing key payment.key. The exchange routes it to payment.queue. If delivery fails, RabbitMQ moves it to payment.dlq after exhausting retries.',
+    props: [
+      ['Publisher', 'PaymentProducer (RabbitTemplate)'],
+      ['Exchange', 'payflow.exchange'],
+      ['Routing key', 'payment.key'],
+      ['Queue', 'payment.queue'],
+      ['DLQ', 'payment.dlq (on failure)'],
+    ],
+  },
+  'step-consumer': {
+    title: 'Step 4 — Consumer picks up',
+    tag: '@RabbitListener', tagClass: 'tag-orange',
+    desc: 'PaymentConsumer.handlePayment() loads the full Transaction from PostgreSQL by ID, updates status to PROCESSING, saves, and broadcasts another WebSocket event before invoking fraud detection.',
+    props: [
+      ['Listener', '@RabbitListener(queues = "payment.queue")'],
+      ['Status update', 'PENDING → PROCESSING'],
+      ['Broadcast', '/topic/transactions (PROCESSING)'],
+    ],
+  },
+  'step-fraud': {
+    title: 'Step 5 — Fraud Detection',
+    tag: 'Rule Engine', tagClass: 'tag-red',
+    desc: 'FraudDetectionService evaluates three rules. Scores are additive — a £60,000 round-number payment scores 60 (HIGH_AMOUNT) + 20 (ROUND_NUMBER) = 80. The threshold is configurable (default 60).',
+    props: [
+      ['High Amount', '>£50,000 → +60'],
+      ['Rapid Succession', '3+ in 60s → +70 (Redis)'],
+      ['Round Number', 'Whole £ > £5,000 → +20'],
+      ['Flag threshold', '60 (configurable)'],
+      ['Max score', '100 (rules cap)'],
+    ],
+  },
+  'step-flagged': {
+    title: 'Outcome — FLAGGED',
+    tag: 'Fraud', tagClass: 'tag-red',
+    desc: 'Score ≥ 60: Transaction status set to FLAGGED. FraudAlert entity saved. Two WebSocket broadcasts fire: /topic/transactions and /topic/fraud-alerts. The Fraud Alerts badge increments on all connected browsers.',
+    props: [
+      ['Status', 'FLAGGED'],
+      ['FraudAlert', 'Persisted to PostgreSQL'],
+      ['Broadcasts', '/topic/transactions + /topic/fraud-alerts'],
+      ['Balance effect', 'None — payment quarantined'],
+    ],
+  },
+  'step-completed': {
+    title: 'Outcome — COMPLETED',
+    tag: 'Settlement', tagClass: 'tag-green',
+    desc: 'Score < 60: Account balances updated (sender debited, receiver credited). Transaction marked COMPLETED. WebSocket broadcast fires on /topic/transactions. The area chart gains a new tick.',
+    props: [
+      ['Status', 'COMPLETED'],
+      ['Balances', 'Sender debited, receiver credited'],
+      ['Broadcast', '/topic/transactions (COMPLETED)'],
+      ['Chart', 'LiveChart gains a new completed tick'],
+    ],
+  },
+  'step-stats': {
+    title: 'Step 6 — Stats Broadcast',
+    tag: 'Real-time sync', tagClass: 'tag-purple',
+    desc: 'After every terminal state (COMPLETED or FLAGGED), PaymentService computes a fresh DashboardStats aggregate from the database and broadcasts it. All connected browsers get the same snapshot at the same moment.',
+    props: [
+      ['Topic', '/topic/stats'],
+      ['Payload', 'DashboardStats (totalTransactions, volume, rates)'],
+      ['Trigger', 'After every COMPLETED or FLAGGED outcome'],
+      ['Effect', 'All 6 KPI stat cards refresh everywhere'],
+    ],
+  },
+  'comp-app': {
+    title: 'App.jsx',
+    tag: 'Entry point', tagClass: 'tag-blue',
+    desc: 'Root React component. Manages: theme toggle (dark/light via localStorage), 4-tab navigation, WebSocket subscription via useWebSocket hook, alert badge counter, normalisation of REST vs WS alert shapes.',
+    props: [
+      ['Theme', 'useState → document.documentElement.classList.toggle(\'dark\')'],
+      ['Tabs', 'Dashboard / Send Payment / Live Feed / Fraud Alerts'],
+      ['WS hook', 'useWebSocket.js → merges events into transactions/alerts arrays'],
+      ['Badge', 'alertCount increments on /topic/fraud-alerts events'],
+    ],
+  },
+  'comp-dashboard': {
+    title: 'Dashboard.jsx',
+    tag: 'Page', tagClass: 'tag-blue',
+    desc: 'Main overview rendered in 5 rows: (1) LiveTicker, (2) 6 StatCards, (3) LiveChart + FraudBreakdown donut + SystemStatus, (4) TopBanksTable + RiskScoreChart + AccountBalances, (5) recent transactions table.',
+    props: [
+      ['Row 1', 'LiveTicker — scrolling transaction banner'],
+      ['Row 2', '6 StatCards — total, volume, fraud, success rate, avg, in-flight'],
+      ['Row 3', 'LiveChart (7/12) + FraudBreakdown (3/12) + SystemStatus (2/12)'],
+      ['Row 4', 'TopBanksTable (5/12) + RiskScoreChart (4/12) + AccountBalances (3/12)'],
+      ['Row 5', 'Recent transactions table (last 8)'],
+    ],
+  },
+  'comp-liveticker': {
+    title: 'LiveTicker.jsx',
+    tag: 'Real-time', tagClass: 'tag-green',
+    desc: 'Horizontally scrolling strip showing the last 20 transactions. Uses CSS @keyframes ticker animation (translateX 0 → -50%) on a doubled array of items so the loop is seamless. No JavaScript timer.',
+    props: [
+      ['Data', 'transactions.slice(0, 20)'],
+      ['Animation', 'CSS @keyframes translateX(-50%), 40s linear infinite'],
+      ['Content', 'sender → receiver, GBP amount, status (colour-coded)'],
+      ['Visibility', 'Hidden until first transaction arrives'],
+    ],
+  },
+  'comp-systemstatus': {
+    title: 'SystemStatus.jsx',
+    tag: 'Health', tagClass: 'tag-amber',
+    desc: 'Polls /actuator/health every 15 seconds. Reads components.db, components.rabbit, components.redis from the Spring Boot health response. Shows UP / DOWN / UNKNOWN with colour-coded dots.',
+    props: [
+      ['Endpoint', '/actuator/health (via Vite proxy)'],
+      ['Poll interval', '15s (setInterval)'],
+      ['Services', 'PostgreSQL, RabbitMQ, Redis, API'],
+      ['Links', 'RabbitMQ console (:15672), Grafana (:3000)'],
+    ],
+  },
+  'svc-payment': {
+    title: 'PaymentService.java',
+    tag: 'Core service', tagClass: 'tag-green',
+    desc: 'Central orchestrator. submitPayment() saves PENDING + broadcasts + publishes to RabbitMQ. processPayment() (called by consumer) runs fraud detection, updates status, updates balances, broadcasts result + stats. Records Micrometer metrics at each stage.',
+    props: [
+      ['submitPayment()', 'Save PENDING → WS broadcast → RabbitMQ publish'],
+      ['processPayment()', 'Fraud check → COMPLETED or FLAGGED → WS + stats broadcast'],
+      ['Metrics', 'recordSubmitted(), recordCompleted(), recordFlagged(), recordProcessingTime()'],
+    ],
+  },
+  'svc-fraud': {
+    title: 'FraudDetectionService.java',
+    tag: 'Fraud', tagClass: 'tag-red',
+    desc: 'Pure rule engine with no side effects except the Redis INCR. Returns a FraudResult(score, alertType). The consumer decides what to do with the result. Thresholds are all configurable via application.yml.',
+    props: [
+      ['Rules', '3 additive rules (High Amount, Rapid, Round Number)'],
+      ['Redis key', 'rapid:<accountId>'],
+      ['Config', 'payflow.fraud.* in application.yml'],
+      ['Output', 'FraudResult(score, alertType, flagged)'],
+    ],
+  },
+  'svc-metrics': {
+    title: 'PaymentMetricsService.java',
+    tag: 'Metrics', tagClass: 'tag-amber',
+    desc: 'Registers Micrometer counters and a Timer on startup via @PostConstruct. PaymentService calls these methods at the right lifecycle points. Prometheus scrapes them at /actuator/prometheus.',
+    props: [
+      ['Counters', 'submitted, completed, flagged, failed, volume_gbp'],
+      ['Timer', 'processing_seconds with p50/p95/p99 SLAs'],
+      ['Registry', 'MeterRegistry (auto-configured by Spring Boot)'],
+    ],
+  },
+  'svc-consumer': {
+    title: 'PaymentConsumer.java',
+    tag: 'RabbitMQ', tagClass: 'tag-orange',
+    desc: '@RabbitListener on payment.queue. Receives transaction ID string, loads Transaction from PostgreSQL, calls PaymentService.processPayment(). If an exception escapes, RabbitMQ routes to the DLQ after retry.',
+    props: [
+      ['Annotation', '@RabbitListener(queues = "payment.queue")'],
+      ['Input', 'Transaction ID (String)'],
+      ['On success', 'Calls PaymentService.processPayment()'],
+      ['On failure', 'Exception → DLQ after retries'],
+    ],
+  },
+}
+
+function showDetail(key) {
+  const d = DETAILS[key]
+  if (!d) return
+  const panel = document.getElementById('detail-panel')
+  const content = document.getElementById('dp-content')
+  content.innerHTML = `
+    <span class="dp-tag ${d.tagClass}">${d.tag}</span>
+    <h3>${d.title}</h3>
+    <p class="dp-desc">${d.desc}</p>
+    ${d.props ? `
+    <ul class="dp-props">
+      ${d.props.map(([k, v]) => `<li><span class="pk">${k}</span><span class="pv">${v}</span></li>`).join('')}
+    </ul>` : ''}
+  `
+  panel.classList.add('open')
+}
+
+function closePanel() {
+  document.getElementById('detail-panel').classList.remove('open')
+}
+
+function setActive(el) {
+  document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'))
+  el.classList.add('active')
+}
+
+// Update active nav on scroll
+const sections = ['architecture', 'flow', 'components', 'monitoring', 'websocket']
+window.addEventListener('scroll', () => {
+  const pos = window.scrollY + 120
+  for (let i = sections.length - 1; i >= 0; i--) {
+    const el = document.getElementById(sections[i])
+    if (el && el.offsetTop <= pos) {
+      document.querySelectorAll('header nav a').forEach(a => a.classList.remove('active'))
+      const link = document.querySelector(`header nav a[href="#${sections[i]}"]`)
+      if (link) link.classList.add('active')
+      break
+    }
+  }
+})
+</script>
+</body>
+</html>
