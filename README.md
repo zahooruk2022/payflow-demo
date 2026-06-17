@@ -2,7 +2,14 @@
 
 A banking demo application simulating real-time interbank payments with live fraud detection across six fictional banks. Built for sales demonstrations to financial institutions.
 
-> **Cloud Foundry version:** [github.com/zahooruk2022/payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) — same architecture, single `cf push`, services auto-wired from VCAP_SERVICES.  
+## PayFlow demo suite
+
+| Repo | Stack | Purpose |
+|---|---|---|
+| **payflow-demo** ← you are here | Spring Boot · Docker Compose | Local dev — PostgreSQL, RabbitMQ, Redis, Prometheus, Grafana |
+| [payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) | Spring Boot · CF managed services | Tanzu/TAS — single `cf push`, VCAP_SERVICES auto-wiring |
+| [payflow-ai](https://github.com/zahooruk2022/payflow-ai) | Spring AI · Tanzu GenAI | AI payment analyst — tool-calling chat + semantic transaction search |
+
 > **Interactive architecture diagram:** open `architecture.html` in a browser.
 
 ---
@@ -22,7 +29,7 @@ A banking demo application simulating real-time interbank payments with live fra
 11. [Monitoring (Grafana + Prometheus)](#monitoring)
 12. [Configuration](#configuration)
 13. [Demo Script](#demo-script)
-14. [Cloud Foundry version](#cloud-foundry-version)
+14. [Related demos](#related-demos)
 
 > **Interactive architecture diagram:** open `architecture.html` in a browser for a clickable component reference.
 
@@ -742,13 +749,13 @@ Click the **Sun/Moon icon** in the top-right header.
 
 ---
 
-## Cloud Foundry version
+## Related demos
 
-A Cloud Foundry edition of PayFlow is available at **[github.com/zahooruk2022/payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf)**.
+### [payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) — Cloud Foundry edition
 
-Same application, same architecture, same fraud detection — adapted for deployment on Tanzu Application Service (TAS) or any Cloud Foundry foundation.
+Same application, same architecture, same fraud detection — adapted for Tanzu Application Service (TAS). React frontend embedded in the Spring Boot jar; services auto-wired from `VCAP_SERVICES` via `java-cfenv-boot`.
 
-| | This repo (Docker) | CF version |
+| | This repo (Docker) | payflow-demo-cf |
 |---|---|---|
 | **Deploy** | `docker compose up` + `mvn spring-boot:run` + `npm run dev` | `./build.sh && cf push` |
 | **Services** | Local Docker containers | CF managed service instances |
@@ -757,11 +764,17 @@ Same application, same architecture, same fraud detection — adapted for deploy
 | **Scaling** | Manual | `cf scale payflow-demo -i N` |
 | **Monitoring** | Grafana + Prometheus (docker compose) | TAS Apps Manager / external Prometheus |
 
-### Key changes in the CF version
+Key changes: `java-cfenv-boot` in `pom.xml`, `server.port: ${PORT:8080}`, `window.location.origin + '/ws'` in `useWebSocket.js`, `build.outDir` in `vite.config.js`.
 
-- **`java-cfenv-boot`** added to `pom.xml` — reads `VCAP_SERVICES` and configures PostgreSQL, RabbitMQ, and Redis connection factories automatically on startup
-- **`server.port: ${PORT:8080}`** in `application.yml` — CF assigns the container port dynamically
-- **`useWebSocket.js`** uses `window.location.origin + '/ws'` instead of hardcoded `localhost:8080` — works on any CF route
-- **`vite.config.js`** sets `build.outDir` to `../backend/src/main/resources/static` — the React app is bundled into the Spring Boot jar, so a single `cf push` deploys everything
+---
 
-> **CF repo:** https://github.com/zahooruk2022/payflow-demo-cf
+### [payflow-ai](https://github.com/zahooruk2022/payflow-ai) — Spring AI edition
+
+A separate demo that adds AI capabilities to the PayFlow payment domain using **Spring AI 1.0** and **Tanzu Platform GenAI**. No RabbitMQ, Redis, or PostgreSQL — pure AI + in-memory vector store, single CF jar.
+
+| Capability | Model | Description |
+|---|---|---|
+| Chat Analyst | `gpt-oss:20b` | Conversational AI with tool calling — queries transaction data, explains fraud patterns, generates investigation narratives |
+| Semantic Search | `nomic-embed-text-v2-moe` | Finds transactions by meaning using vector embeddings |
+
+AI service credentials are injected from `VCAP_SERVICES` via CF service bindings — no secrets in git.
