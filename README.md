@@ -2,6 +2,9 @@
 
 A banking demo application simulating real-time interbank payments with live fraud detection across six major UK banks. Built for sales demonstrations to financial institutions.
 
+> **Cloud Foundry version:** [github.com/zahooruk2022/payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) — same architecture, single `cf push`, services auto-wired from VCAP_SERVICES.  
+> **Interactive architecture diagram:** open `architecture.html` in a browser.
+
 ---
 
 ## Table of Contents
@@ -19,6 +22,7 @@ A banking demo application simulating real-time interbank payments with live fra
 11. [Monitoring (Grafana + Prometheus)](#monitoring)
 12. [Configuration](#configuration)
 13. [Demo Script](#demo-script)
+14. [Cloud Foundry version](#cloud-foundry-version)
 
 > **Interactive architecture diagram:** open `architecture.html` in a browser for a clickable component reference.
 
@@ -735,3 +739,29 @@ Click the **Sun/Moon icon** in the top-right header.
 ### Close
 
 > *"Every component here — PostgreSQL for durable storage, RabbitMQ for reliable async processing, Redis for real-time fraud counters, and WebSocket for live push to the UI — is production-grade open source running on the JVM. This is exactly how a modern payment rail is built."*
+
+---
+
+## Cloud Foundry version
+
+A Cloud Foundry edition of PayFlow is available at **[github.com/zahooruk2022/payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf)**.
+
+Same application, same architecture, same fraud detection — adapted for deployment on Tanzu Application Service (TAS) or any Cloud Foundry foundation.
+
+| | This repo (Docker) | CF version |
+|---|---|---|
+| **Deploy** | `docker compose up` + `mvn spring-boot:run` + `npm run dev` | `./build.sh && cf push` |
+| **Services** | Local Docker containers | CF managed service instances |
+| **Frontend** | Vite dev server :5173 (separate) | Embedded in Spring Boot jar |
+| **Service config** | Explicit in `application.yml` | Auto-wired from `VCAP_SERVICES` via `java-cfenv-boot` |
+| **Scaling** | Manual | `cf scale payflow-demo -i N` |
+| **Monitoring** | Grafana + Prometheus (docker compose) | TAS Apps Manager / external Prometheus |
+
+### Key changes in the CF version
+
+- **`java-cfenv-boot`** added to `pom.xml` — reads `VCAP_SERVICES` and configures PostgreSQL, RabbitMQ, and Redis connection factories automatically on startup
+- **`server.port: ${PORT:8080}`** in `application.yml` — CF assigns the container port dynamically
+- **`useWebSocket.js`** uses `window.location.origin + '/ws'` instead of hardcoded `localhost:8080` — works on any CF route
+- **`vite.config.js`** sets `build.outDir` to `../backend/src/main/resources/static` — the React app is bundled into the Spring Boot jar, so a single `cf push` deploys everything
+
+> **CF repo:** https://github.com/zahooruk2022/payflow-demo-cf
