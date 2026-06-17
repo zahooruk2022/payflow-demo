@@ -1,6 +1,6 @@
 # PayFlow — Real-Time Interbank Payment Processing
 
-A banking demo application simulating real-time interbank payments with live fraud detection across six major UK banks. Built for sales demonstrations to financial institutions.
+A banking demo application simulating real-time interbank payments with live fraud detection across six fictional banks. Built for sales demonstrations to financial institutions.
 
 > **Cloud Foundry version:** [github.com/zahooruk2022/payflow-demo-cf](https://github.com/zahooruk2022/payflow-demo-cf) — same architecture, single `cf push`, services auto-wired from VCAP_SERVICES.  
 > **Interactive architecture diagram:** open `architecture.html` in a browser.
@@ -32,7 +32,7 @@ A banking demo application simulating real-time interbank payments with live fra
 
 PayFlow simulates a UK interbank payment network. Payments submitted through the UI travel through a RabbitMQ queue, are scored against Redis-backed fraud rules, and the result is broadcast live to all connected browsers via WebSocket — with no page refresh required.
 
-Six real UK banks are pre-loaded. Balances update in real time as payments settle. Fraud alerts appear instantly on a dedicated tab with a badge counter.
+Six fictional bank accounts are pre-loaded. Balances update in real time as payments settle. Fraud alerts appear instantly on a dedicated tab with a badge counter.
 
 **Why this resonates with bank audiences:**
 - Every technology in the stack earns its place — nothing gratuitous
@@ -418,7 +418,7 @@ Real-time overview of the payment network — designed to look busy and data-ric
 - **System health panel** — polls Spring Actuator every 15s, shows UP/DOWN for PostgreSQL, RabbitMQ, Redis, API
 - **Top Banks table** — 6 banks ranked by sent volume, with fraud flag badges and proportional bars
 - **Risk score histogram** — transactions bucketed into Clean / Low / Medium / High / Critical bands
-- **Account balances** — all 6 UK banks with live balance bars and a refresh button
+- **Account balances** — all 6 demo banks with live balance bars and a refresh button
 - **Recent transactions table** — last 8 payments with status badges, risk score bar, and timestamp
 
 ### Send Payment
@@ -481,7 +481,7 @@ Each increment auto-expires after 60 seconds — the counter resets naturally wi
 ### Accounts
 
 ```
-GET  /api/accounts          List all UK bank accounts
+GET  /api/accounts          List all demo bank accounts
 GET  /api/accounts/{id}     Get a single account
 ```
 
@@ -626,7 +626,7 @@ All backend configuration is in `backend/src/main/resources/application.yml`.
 
 ### Seed data
 
-Six UK bank accounts are created on every startup:
+Six fictional bank accounts are created on every startup:
 
 | Bank | Sort Code / Account | SWIFT/BIC | Opening Balance |
 |---|---|---|---|
@@ -662,7 +662,7 @@ Open the **Dashboard** tab.
 
 Point out:
 - The live connection indicator (top right)
-- The account balances panel — six major UK clearing banks
+- The account balances panel — six demo bank accounts
 - The empty chart (it fills as payments flow)
 
 ---
